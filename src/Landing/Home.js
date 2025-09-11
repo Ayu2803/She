@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import bg from "./SHE_BG.jpg";
+import About from "./About";
+import { Link } from "react-router-dom";
 
-// Main App component - Fixed: Component name starts with uppercase letter
 const Home = () => {
   const [windowWidth, setWindowWidth] = useState(window.innerWidth);
 
@@ -12,82 +13,61 @@ const Home = () => {
 
     window.addEventListener('resize', handleResize);
 
-    // Clean up the event listener
     return () => {
       window.removeEventListener('resize', handleResize);
     };
   }, []);
-
-   const bgStyle = {
-    height: "100vh",
-    backgroundImage: `url("/bg.jpg")`, // if image is in public folder
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-  };
-
-
+     
   const styles = {
-    container: {
-      backgroundColor: '#1a1a1a', // Dark theme background
-      color: '#fff', // White font color for contrast
+    // Main container for the whole page
+    mainContainer: {
       fontFamily: 'sans-serif',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
+      color: '#fff',
+    },
+    
+    // Navbar styling
+    navbarContainer: {
+      backgroundColor: 'rgba(1, 1, 28, 0.98)',
+      position: 'fixed',
+      width: '100%',
+      top: 0,
+      zIndex: 10,
     },
     navbar: {
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
       padding: '1rem 2rem',
-      backgroundColor: '#000', // Black navbar background
-      position: 'fixed',
-      width: '100%',
-      top: 0,
-      zIndex: 10,
+      height: '80px',
     },
     navButtons: {
       display: 'flex',
       gap: '1rem',
     },
     button: {
-      backgroundColor: '#54ccfbff', // Light blue buttons
-      color: '#000', // Black text on buttons
-      border: '2px solid #87CEEB',
-      padding: '0.5rem 1rem',
-      borderRadius: '20px',
-      cursor: 'pointer',
-      transition: 'all 0.3s ease',
-    },
-    buttonHover: {
-      backgroundColor: '#fff',
+      backgroundColor: '#54ccfbff',
       color: '#000',
+      border: '2px solid #54ccfbff',
+      padding: '0.75rem 1.5rem',
+      borderRadius: '25px',
+      cursor: 'pointer',
+      transition: 'background-color 0.3s ease, color 0.3s ease',
+      fontWeight: 'bold',
+      textTransform: 'uppercase',
     },
+    
+    // Hero section with the background image
     heroSection: {
-      position: 'relative',
-      width: '100%',
       height: '100vh',
+      backgroundImage: `url(${bg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
       display: 'flex',
       justifyContent: 'center',
       alignItems: 'center',
       textAlign: 'center',
-      overflow: 'hidden',
-   backgroundImage: `url(${bg})`,
-    backgroundSize: "cover",
-    backgroundPosition: "center",
-    backgroundRepeat: "no-repeat",
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    color: "white",
-      
-    },
-    heroImage: {
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover',
-      filter: 'blur(10%)', // Blur the image
+      position: 'relative',
     },
     heroOverlay: {
       position: 'absolute',
@@ -100,48 +80,50 @@ const Home = () => {
       justifyContent: 'center',
       alignItems: 'center',
       padding: '1rem',
-      backgroundColor: 'rgba(0, 0, 0, 0.4)', // Darker semi-transparent overlay
+      // Dark semi-transparent overlay to make text more readable
+      backgroundColor: 'rgba(1, 41, 58, 0.42)', 
     },
     heading: {
       fontSize: windowWidth < 768 ? '3rem' : '5rem',
       fontWeight: 'bold',
       marginBottom: '1rem',
-      color: '#fff', // White heading text
+      color: '#fff',
       textShadow: '2px 2px 4px rgba(0,0,0,0.5)',
+      
     },
     tagline: {
       fontSize: windowWidth < 768 ? '1rem' : '1.5rem',
       maxWidth: '600px',
       fontStyle: 'italic',
       textAlign: 'center',
-      color: '#fff', // White tagline text
+      color: '#fff',
       textShadow: '1px 1px 2px rgba(0,0,0,0.5)',
     },
- 
-    
-
-    
-
-
   };
 
   return (
-    <div style={styles.container}>
-      {/* Navigation Bar */}
-      <nav style={styles.navbar}>
-        <div style={{ color: 'white', fontWeight: 'bold', fontSize: '1.5rem' }}>SHE</div>
-        <div style={styles.navButtons}>
-          <button style={styles.button}>Login as Retailer</button>
-          <button style={styles.button}>Login as Admin</button>
-        </div>
-      </nav>
+    <>
+    <div style={styles.mainContainer}>
+      {/* Navigation Bar Section - Now separate from background */}
+      <div style={styles.navbarContainer}>
+        <nav style={styles.navbar}>
+          <div style={{ color: 'white', fontWeight: 'bold', fontSize: '60px' }}>SHE</div>
+          <div style={styles.navButtons}>
 
-      {/* Hero Section */}
+            <Link to = "/AdminLogin">
+            <button style={styles.button}>Login as Retailer</button>
+            </Link>
+
+            <Link to = "/RetailerLogin">
+            <button style={styles.button}>Login as Admin</button>
+            </Link>
+            
+          </div>
+        </nav>
+      </div>
+
+      {/* Hero Section with Background Image - Now separate from navbar */}
       <div style={styles.heroSection}>
-        <img
-          alt="A group of diverse women advocating for safety"
-          style={styles.heroImage}
-        />
         <div style={styles.heroOverlay}>
           <h1 style={styles.heading}>SHE</h1>
           <p style={styles.tagline}>
@@ -149,8 +131,13 @@ const Home = () => {
           </p>
         </div>
       </div>
+
     </div>
+
+      <About/>
+
+  </>
   );
 };
 
-export default Home; // Fixed: Exporting 'Home' instead of 'home'
+export default Home;

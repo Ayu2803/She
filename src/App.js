@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Landing/Home";
-
+import About from "./Landing/About";
 import Dashboard from "./retail/dashboard";
 import Customer from "./retail/AddCustomer";
 import AdminDashboard from "./admin/AdminDashboard";
@@ -12,7 +12,7 @@ function App() {
       <Routes>
        {/* Landing Page */}
         <Route path="/Home" element={<Home />} />
-       
+        <Route path="/About" element={<About />} />
 
        {/* retailer's zone */}
         <Route path="/dashboard" element={<Dashboard />} />
