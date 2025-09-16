@@ -110,14 +110,17 @@ const Home = () => {
           <div style={{ color: 'white', fontWeight: 'bold', fontSize: '60px' }}>SHE</div>
           <div style={styles.navButtons}>
 
-            <Link to = "/AdminLogin">
+            <Link to = "/dashboard">
             <button style={styles.button}>Login as Retailer</button>
             </Link>
 
-            <Link to = "/RetailerLogin">
+            <Link to = "/AdminDashboard">
             <button style={styles.button}>Login as Admin</button>
             </Link>
             
+             <Link to = "/PoliceDashboard">
+            <button style={styles.button}>Login as Police</button>
+            </Link>
           </div>
         </nav>
       </div>

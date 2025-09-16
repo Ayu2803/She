@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebaseConfig'; // Adjust the path to your firebase config
 
 // Pie chart data and colors
 const salesData = [
@@ -7,13 +9,6 @@ const salesData = [
   { name: 'Product B', value: 300, color: '#2196F3' },
   { name: 'Product C', value: 300, color: '#FFC107' },
   { name: 'Product D', value: 200, color: '#F44336' },
-];
-
-const mockCustomers = [
-  { id: 'CUST001', name: 'John Doe', productID: 'PROD101', phoneNumber: '555-1234', address: '123 Main St, Anytown' },
-  { id: 'CUST002', name: 'Jane Smith', productID: 'PROD102', phoneNumber: '555-5678', address: '456 Oak Ave, Anycity' },
-  { id: 'CUST003', name: 'Peter Jones', productID: 'PROD103', phoneNumber: '555-9012', address: '789 Pine Rd, Anyville' },
-  { id: 'CUST004', name: 'Maria Garcia', productID: 'PROD104', phoneNumber: '555-3456', address: '321 Elm St, Anytown' },
 ];
 
 // Custom Pie Chart Component
@@ -54,17 +49,45 @@ const CustomPieChart = ({ data, width = 300, height = 300 }) => {
 };
 
 const Dashboard = () => {
-  const [customers, setCustomers] = useState(mockCustomers);
+  const [customers, setCustomers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+
+  // Fetch customers from Firestore
+  const fetchCustomers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'customers'));
+      const customersData = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        customersData.push({ 
+          id: doc.id, 
+          name: data.customerName || 'N/A',
+          productID: data.productId || 'N/A',
+          phoneNumber: data.phoneNo || 'N/A',
+          address: data.customerAddress || 'N/A'
+        });
+      });
+      setCustomers(customersData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching customers: ', error);
+      setMessage('Error fetching customers data');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCustomers();
+  }, []);
 
   const showMessage = (msg) => {
     setMessage(msg);
-    setTimeout(() => setMessage(''), 3000); // Hide message after 3 seconds
+    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleAddCustomer = () => {
-    // Placeholder function for adding a new customer
-    showMessage('Add New Customer button clicked! This feature is coming soon.');
+    showMessage('Add New Customer button clicked!');
   };
 
   // Calculate total sales
@@ -75,7 +98,7 @@ const Dashboard = () => {
     container: {
       minHeight: '100vh',
       backgroundColor: '#1A202C',
-      color: '#E2E8F0', // Light text for dark background
+      color: '#E2E8F0',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       paddingBottom: '2rem',
     },
@@ -104,7 +127,7 @@ const Dashboard = () => {
       padding: '0 1rem',
     },
     card: {
-      backgroundColor: '#2D3748', // Darker card background
+      backgroundColor: '#2D3748',
       color: '#E2E8F0',
       padding: '1.5rem',
       borderRadius: '1rem',
@@ -126,7 +149,7 @@ const Dashboard = () => {
     cardValue: {
       fontSize: '2rem',
       fontWeight: 'bold',
-      color: '#00BFFF', // Sky blue for emphasis
+      color: '#00BFFF',
     },
     chartCard: {
       gridColumn: '1 / -1',
@@ -170,9 +193,6 @@ const Dashboard = () => {
       cursor: 'pointer',
       boxShadow: '0 2px 5px rgba(0, 191, 255, 0.2)',
       transition: 'transform 0.2s ease-in-out',
-      '&:hover': {
-        transform: 'scale(1.05)',
-      }
     },
     tableContainer: {
       overflowX: 'auto',
@@ -183,7 +203,7 @@ const Dashboard = () => {
       borderSpacing: '0 0.5rem',
     },
     tableHeader: {
-      backgroundColor: '#4A5568', // Darker table header
+      backgroundColor: '#4A5568',
       borderRadius: '8px',
     },
     tableHeaderCell: {
@@ -191,7 +211,7 @@ const Dashboard = () => {
       textAlign: 'left',
       fontSize: '0.8rem',
       fontWeight: '700',
-      color: '#CBD5E0', // Lighter header text
+      color: '#CBD5E0',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
     },
@@ -201,12 +221,9 @@ const Dashboard = () => {
       color: '#E2E8F0',
     },
     tableRow: {
-      backgroundColor: '#2D3748', // Same as card background
+      backgroundColor: '#2D3748',
       boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
       transition: 'transform 0.2s',
-      '&:hover': {
-        transform: 'scale(1.01)',
-      },
     },
     messageBox: {
       position: 'fixed',
@@ -221,6 +238,12 @@ const Dashboard = () => {
       zIndex: 2000,
       opacity: message ? 1 : 0,
       transition: 'opacity 0.3s ease-in-out',
+    },
+    loadingText: {
+      textAlign: 'center',
+      color: '#CBD5E0',
+      fontSize: '1.2rem',
+      padding: '2rem'
     }
   };
 
@@ -228,7 +251,7 @@ const Dashboard = () => {
     <div style={styles.container}>
       {/* Top Navigation Bar */}
       <div style={styles.navBar}>
-        <h1 style={styles.navTitle}>SHE</h1>
+        <h1 style={styles.navTitle}>Retailer Panel</h1>
       </div>
       
       {/* Main Dashboard Grid */}
@@ -274,38 +297,40 @@ const Dashboard = () => {
               <h2 style={styles.tableTitle}>Customer List</h2>
 
               <Link to="/AddCustomer">
-
-              <button style={styles.addCustomerButton} onClick={handleAddCustomer}>
-                Add New Customer
-              </button>
-
+                <button style={styles.addCustomerButton} onClick={handleAddCustomer}>
+                  Add New Customer
+                </button>
               </Link>
-
             </div>
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.tableHeaderCell}>Customer ID</th>
-                    <th style={styles.tableHeaderCell}>Customer Name</th>
-                    <th style={styles.tableHeaderCell}>Product ID</th>
-                    <th style={styles.tableHeaderCell}>Phone Number</th>
-                    <th style={styles.tableHeaderCell}>Address</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {customers.map((customer) => (
-                    <tr key={customer.id} style={styles.tableRow}>
-                      <td style={{...styles.tableCell, fontWeight: '500'}}>{customer.id}</td>
-                      <td style={styles.tableCell}>{customer.name}</td>
-                      <td style={styles.tableCell}>{customer.productID}</td>
-                      <td style={styles.tableCell}>{customer.phoneNumber}</td>
-                      <td style={styles.tableCell}>{customer.address}</td>
+            
+            {loading ? (
+              <p style={styles.loadingText}>Loading customers...</p>
+            ) : (
+              <div style={styles.tableContainer}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.tableHeaderCell}>Customer ID</th>
+                      <th style={styles.tableHeaderCell}>Customer Name</th>
+                      <th style={styles.tableHeaderCell}>Product ID</th>
+                      <th style={styles.tableHeaderCell}>Phone Number</th>
+                      <th style={styles.tableHeaderCell}>Address</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {customers.map((customer) => (
+                      <tr key={customer.id} style={styles.tableRow}>
+                        <td style={{...styles.tableCell, fontWeight: '500'}}>{customer.id}</td>
+                        <td style={styles.tableCell}>{customer.name}</td>
+                        <td style={styles.tableCell}>{customer.productID}</td>
+                        <td style={styles.tableCell}>{customer.phoneNumber}</td>
+                        <td style={styles.tableCell}>{customer.address}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
         </div>
       </div>
       

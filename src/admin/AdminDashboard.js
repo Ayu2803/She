@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
+import { collection, getDocs } from 'firebase/firestore';
+import { db } from '../firebaseConfig'; // Adjust the path to your firebase config
 
 // Pie chart data and colors
 const salesData = [
@@ -9,11 +11,14 @@ const salesData = [
   { name: 'Product D', value: 200, color: '#F44336' },
 ];
 
-const mockRetailers = [
-  { id: 'RET001', name: 'Global Goods Inc.', location: 'New York', contactPerson: 'John Smith', productsSold: 1500 },
-  { id: 'RET002', name: 'City Mart', location: 'Los Angeles', contactPerson: 'Jane Doe', productsSold: 2200 },
-  { id: 'RET003', name: 'Corner Store', location: 'Chicago', contactPerson: 'Peter Jones', productsSold: 800 },
-  { id: 'RET004', name: 'Online Emporium', location: 'San Francisco', contactPerson: 'Maria Garcia', productsSold: 4500 },
+// Bar chart data
+const barChartData = [
+  { month: 'Jan', sales: 1200, target: 1000 },
+  { month: 'Feb', sales: 1800, target: 1500 },
+  { month: 'Mar', sales: 1500, target: 1600 },
+  { month: 'Apr', sales: 2200, target: 1800 },
+  { month: 'May', sales: 2800, target: 2500 },
+  { month: 'Jun', sales: 3400, target: 3000 },
 ];
 
 // Custom Pie Chart Component
@@ -53,18 +58,153 @@ const CustomPieChart = ({ data, width = 300, height = 300 }) => {
   );
 };
 
+// Custom Bar Chart Component
+const CustomBarChart = ({ data, width = 500, height = 300 }) => {
+  const maxValue = Math.max(...data.map(item => Math.max(item.sales, item.target)));
+  const barWidth = (width - 100) / data.length / 2;
+  const spacing = barWidth * 0.5;
+  const chartHeight = height - 50;
+
+  return (
+    <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
+      {/* Y-axis labels */}
+      {[0, maxValue * 0.25, maxValue * 0.5, maxValue * 0.75, maxValue].map((value, index) => (
+        <g key={index}>
+          <line 
+            x1="40" 
+            y1={chartHeight - (value / maxValue) * chartHeight + 20} 
+            x2={width} 
+            y2={chartHeight - (value / maxValue) * chartHeight + 20} 
+            stroke="#4A5568" 
+            strokeWidth="0.5" 
+            strokeDasharray="2,2"
+          />
+          <text 
+            x="35" 
+            y={chartHeight - (value / maxValue) * chartHeight + 20} 
+            textAnchor="end" 
+            dy="0.3em" 
+            fontSize="10" 
+            fill="#CBD5E0"
+          >
+            ${value.toLocaleString()}
+          </text>
+        </g>
+      ))}
+
+      {/* Bars */}
+      {data.map((item, index) => {
+        const salesBarHeight = (item.sales / maxValue) * chartHeight;
+        const targetBarHeight = (item.target / maxValue) * chartHeight;
+        const xPosition = 60 + index * (barWidth * 2 + spacing);
+
+        return (
+          <g key={index}>
+            {/* Sales Bar */}
+            <rect
+              x={xPosition}
+              y={chartHeight - salesBarHeight + 20}
+              width={barWidth}
+              height={salesBarHeight}
+              fill="#00BFFF"
+              rx="2"
+            />
+            {/* Target Bar */}
+            <rect
+              x={xPosition + barWidth + 2}
+              y={chartHeight - targetBarHeight + 20}
+              width={barWidth}
+              height={targetBarHeight}
+              fill="#FFC107"
+              rx="2"
+            />
+            {/* Month Label */}
+            <text
+              x={xPosition + barWidth}
+              y={chartHeight + 35}
+              textAnchor="middle"
+              fontSize="10"
+              fill="#CBD5E0"
+            >
+              {item.month}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* X-axis */}
+      <line 
+        x1="40" 
+        y1={chartHeight + 20} 
+        x2={width} 
+        y2={chartHeight + 20} 
+        stroke="#4A5568" 
+        strokeWidth="1" 
+      />
+
+      {/* Y-axis */}
+      <line 
+        x1="40" 
+        y1="20" 
+        x2="40" 
+        y2={chartHeight + 20} 
+        stroke="#4A5568" 
+        strokeWidth="1" 
+      />
+
+      {/* Legend */}
+      <g>
+        <rect x={width - 150} y="10" width="12" height="12" fill="#00BFFF" rx="2" />
+        <text x={width - 130} y="20" fontSize="12" fill="#CBD5E0">Sales</text>
+        
+        <rect x={width - 150} y="30" width="12" height="12" fill="#FFC107" rx="2" />
+        <text x={width - 130} y="40" fontSize="12" fill="#CBD5E0">Target</text>
+      </g>
+    </svg>
+  );
+};
+
 const AdminDashboard = () => {
-  const [retailers, setRetailers] = useState(mockRetailers);
+  const [retailers, setRetailers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
+
+  // Fetch retailers from Firestore
+  const fetchRetailers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'retailers'));
+      const retailersData = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        retailersData.push({ 
+          id: doc.id, 
+          name: data.retailerName || 'N/A',
+          address: data.retailerAddress || 'N/A',
+          retailerId: data.retailerId || 'N/A',
+          phone: data.phoneNo || 'N/A',
+          productId: data.productId || 'N/A'
+        });
+      });
+      setRetailers(retailersData);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching retailers: ', error);
+      setMessage('Error fetching retailers data');
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRetailers();
+  }, []);
 
   const showMessage = (msg) => {
     setMessage(msg);
-    setTimeout(() => setMessage(''), 3000); // Hide message after 3 seconds
+    setTimeout(() => setMessage(''), 3000);
   };
 
   const handleAddRetailer = () => {
-    // Placeholder function for adding a new retailer
-    showMessage('Add New Retailer button clicked! This feature is coming soon.');
+    showMessage('Add New Retailer button clicked!');
   };
 
   // Calculate total sales
@@ -75,7 +215,7 @@ const AdminDashboard = () => {
     container: {
       minHeight: '100vh',
       backgroundColor: '#1A202C',
-      color: '#E2E8F0', // Light text for dark background
+      color: '#E2E8F0',
       fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       paddingBottom: '2rem',
     },
@@ -104,7 +244,7 @@ const AdminDashboard = () => {
       padding: '0 1rem',
     },
     card: {
-      backgroundColor: '#2D3748', // Darker card background
+      backgroundColor: '#2D3748',
       color: '#E2E8F0',
       padding: '1.5rem',
       borderRadius: '1rem',
@@ -126,7 +266,7 @@ const AdminDashboard = () => {
     cardValue: {
       fontSize: '2rem',
       fontWeight: 'bold',
-      color: '#00BFFF', // Sky blue for emphasis
+      color: '#00BFFF',
     },
     chartCard: {
       gridColumn: '1 / -1',
@@ -170,9 +310,6 @@ const AdminDashboard = () => {
       cursor: 'pointer',
       boxShadow: '0 2px 5px rgba(0, 191, 255, 0.2)',
       transition: 'transform 0.2s ease-in-out',
-      '&:hover': {
-        transform: 'scale(1.05)',
-      }
     },
     tableContainer: {
       overflowX: 'auto',
@@ -183,7 +320,7 @@ const AdminDashboard = () => {
       borderSpacing: '0 0.5rem',
     },
     tableHeader: {
-      backgroundColor: '#4A5568', // Darker table header
+      backgroundColor: '#4A5568',
       borderRadius: '8px',
     },
     tableHeaderCell: {
@@ -191,7 +328,7 @@ const AdminDashboard = () => {
       textAlign: 'left',
       fontSize: '0.8rem',
       fontWeight: '700',
-      color: '#CBD5E0', // Lighter header text
+      color: '#CBD5E0',
       textTransform: 'uppercase',
       letterSpacing: '0.05em',
     },
@@ -201,12 +338,9 @@ const AdminDashboard = () => {
       color: '#E2E8F0',
     },
     tableRow: {
-      backgroundColor: '#2D3748', // Same as card background
+      backgroundColor: '#2D3748',
       boxShadow: '0 2px 5px rgba(0, 0, 0, 0.1)',
       transition: 'transform 0.2s',
-      '&:hover': {
-        transform: 'scale(1.01)',
-      },
     },
     messageBox: {
       position: 'fixed',
@@ -221,6 +355,70 @@ const AdminDashboard = () => {
       zIndex: 2000,
       opacity: message ? 1 : 0,
       transition: 'opacity 0.3s ease-in-out',
+    },
+    chartContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      width: '100%',
+      overflowX: 'auto',
+    },
+    chartGrid: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: '2rem',
+      width: '100%',
+      marginTop: '1rem',
+    },
+    chartBox: {
+      backgroundColor: '#2D3748',
+      borderRadius: '1rem',
+      padding: '1.5rem',
+      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+    },
+    chartTitle: {
+      fontSize: '1.2rem',
+      fontWeight: '600',
+      color: '#E2E8F0',
+      marginBottom: '1rem',
+    },
+    chartSubtitle: {
+      fontSize: '0.9rem',
+      color: '#CBD5E0',
+      marginBottom: '1.5rem',
+      textAlign: 'center',
+    },
+    pieChartContainer: {
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+    },
+    pieChartLegend: {
+      marginLeft: '2rem',
+    },
+    pieLegendItem: {
+      display: 'flex',
+      alignItems: 'center',
+      marginBottom: '0.5rem',
+    },
+    pieLegendColor: {
+      width: '12px',
+      height: '12px',
+      borderRadius: '50%',
+      marginRight: '0.5rem',
+    },
+    pieLegendText: {
+      fontSize: '0.9rem',
+      color: '#CBD5E0',
+    },
+    loadingText: {
+      textAlign: 'center',
+      color: '#CBD5E0',
+      fontSize: '1.2rem',
+      padding: '2rem'
     }
   };
 
@@ -228,18 +426,12 @@ const AdminDashboard = () => {
     <div style={styles.container}>
       {/* Top Navigation Bar */}
       <div style={styles.navBar}>
-        <h1 style={styles.navTitle}>SHE</h1>
+        <h1 style={styles.navTitle}>Admin Panel</h1>
       </div>
       
       {/* Main Dashboard Grid */}
       <div style={styles.dashboardGrid}>
         
-        {/* Total Sales Card */}
-        <div style={styles.card}>
-          <h3 style={styles.cardTitle}>Total Sales</h3>
-          <p style={styles.cardValue}>${totalSales.toLocaleString()}</p>
-        </div>
-
         {/* Total Products Card */}
         <div style={styles.card}>
           <h3 style={styles.cardTitle}>Total Products</h3>
@@ -252,18 +444,40 @@ const AdminDashboard = () => {
           <p style={styles.cardValue}>{retailers.length}</p>
         </div>
 
-        {/* Product Sale Analysis Card */}
+        {/* Monthly Performance Card */}
+        <div style={styles.card}>
+          <h3 style={styles.cardTitle}>Monthly Performance</h3>
+          <p style={styles.cardValue}>+24.5%</p>
+        </div>
+
+        {/* Combined Charts Card */}
         <div style={{...styles.card, ...styles.chartCard}}>
-          <h2 style={styles.cardTitle}>Product Sale Analysis</h2>
-          <div style={{display: 'flex', justifyContent: 'center', alignItems: 'center', flexWrap: 'wrap'}}>
-            <CustomPieChart data={salesData} width={250} height={250} />
-            <div style={{marginLeft: '2rem'}}>
-              {salesData.map((entry, index) => (
-                <div key={index} style={{display: 'flex', alignItems: 'center', marginBottom: '0.5rem'}}>
-                  <div style={{width: '12px', height: '12px', borderRadius: '50%', backgroundColor: entry.color, marginRight: '0.5rem'}}></div>
-                  <span style={{fontSize: '0.9rem', color: '#CBD5E0'}}>{entry.name}</span>
+          <h2 style={styles.cardTitle}>Sales Analytics</h2>
+          <div style={styles.chartGrid}>
+            {/* Product Sale Analysis */}
+            <div style={styles.chartBox}>
+              <h3 style={styles.chartTitle}>Product Sales Distribution</h3>
+              <p style={styles.chartSubtitle}>Breakdown of sales by product category</p>
+              <div style={styles.pieChartContainer}>
+                <CustomPieChart data={salesData} width={250} height={250} />
+                <div style={styles.pieChartLegend}>
+                  {salesData.map((entry, index) => (
+                    <div key={index} style={styles.pieLegendItem}>
+                      <div style={{...styles.pieLegendColor, backgroundColor: entry.color}}></div>
+                      <span style={styles.pieLegendText}>{entry.name}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              </div>
+            </div>
+
+            {/* Sales Trend Analysis */}
+            <div style={styles.chartBox}>
+              <h3 style={styles.chartTitle}>Monthly Sales vs Target</h3>
+              <p style={styles.chartSubtitle}>Comparison of actual sales against targets</p>
+              <div style={styles.chartContainer}>
+                <CustomBarChart data={barChartData} width={500} height={300} />
+              </div>
             </div>
           </div>
         </div>
@@ -273,39 +487,42 @@ const AdminDashboard = () => {
             <div style={styles.tableTitleContainer}>
               <h2 style={styles.tableTitle}>Retailer List</h2>
 
-             <Link to = "/AddRetailer">
-
+             <Link to="/AddRetailer">
               <button style={styles.addRetailerButton} onClick={handleAddRetailer}>
                 Add New Retailer
               </button>
-
              </Link>
 
             </div>
-            <div style={styles.tableContainer}>
-              <table style={styles.table}>
-                <thead style={styles.tableHeader}>
-                  <tr>
-                    <th style={styles.tableHeaderCell}>Retailer ID</th>
-                    <th style={styles.tableHeaderCell}>Retailer Name</th>
-                    <th style={styles.tableHeaderCell}>Location</th>
-                    <th style={styles.tableHeaderCell}>Contact Person</th>
-                    <th style={styles.tableHeaderCell}>Products Sold</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {retailers.map((retailer) => (
-                    <tr key={retailer.id} style={styles.tableRow}>
-                      <td style={{...styles.tableCell, fontWeight: '500'}}>{retailer.id}</td>
-                      <td style={styles.tableCell}>{retailer.name}</td>
-                      <td style={styles.tableCell}>{retailer.location}</td>
-                      <td style={styles.tableCell}>{retailer.contactPerson}</td>
-                      <td style={styles.tableCell}>{retailer.productsSold}</td>
+            
+            {loading ? (
+              <p style={styles.loadingText}>Loading retailers...</p>
+            ) : (
+              <div style={styles.tableContainer}>
+                <table style={styles.table}>
+                  <thead style={styles.tableHeader}>
+                    <tr>
+                      <th style={styles.tableHeaderCell}>Retailer ID</th>
+                      <th style={styles.tableHeaderCell}>Retailer Name</th>
+                      <th style={styles.tableHeaderCell}>Address</th>
+                      <th style={styles.tableHeaderCell}>Phone Number</th>
+                      <th style={styles.tableHeaderCell}>Product ID</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {retailers.map((retailer) => (
+                      <tr key={retailer.id} style={styles.tableRow}>
+                        <td style={{...styles.tableCell, fontWeight: '500'}}>{retailer.retailerId}</td>
+                        <td style={styles.tableCell}>{retailer.name}</td>
+                        <td style={styles.tableCell}>{retailer.address}</td>
+                        <td style={styles.tableCell}>{retailer.phone}</td>
+                        <td style={styles.tableCell}>{retailer.productId}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
         </div>
       </div>
       

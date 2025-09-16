@@ -1,10 +1,13 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Landing/Home";
 import About from "./Landing/About";
+// import AdminLogin from "./Landing/AdminLogin";
+// import RetailerLogin from "./Landing/RetailerLogin";
 import Dashboard from "./retail/dashboard";
 import Customer from "./retail/AddCustomer";
 import AdminDashboard from "./admin/AdminDashboard";
 import AddRetailer from "./admin/AddRetailer";
+import PoliceDashboard from './Police/PoliceDashboard';
 
 function App() {
   return (
@@ -22,7 +25,9 @@ function App() {
         <Route path="/AdminDashboard" element={<AdminDashboard />} />
         <Route path="/AddRetailer" element={<AddRetailer />} />
 
-
+        {/* Police Zone */}
+        <Route path="/PoliceDashboard" element={<PoliceDashboard />} />
+        
 
       </Routes>
     </Router>

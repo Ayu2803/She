@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../firebaseConfig';
-import { collection, addDoc } from "firebase/firestore";
+import { collection, addDoc, Timestamp } from "firebase/firestore";
 
 // Main App Component
 const Customer = () => {
@@ -15,6 +15,7 @@ const Customer = () => {
 
   const [message, setMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -24,14 +25,22 @@ const Customer = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setMessage('');
+    setLoading(true);
 
     try {
-      // Log the form data to the console instead of saving to a database
-      console.log('Form data submitted:', formData);
-
+      // Add a timestamp to the data
+      const customerData = {
+        ...formData,
+        createdAt: Timestamp.now()
+      };
+      
+      // Save to Firestore
+      const docRef = await addDoc(collection(db, "customers"), customerData);
+      console.log("Document written with ID: ", docRef.id);
+      
       setMessage('Customer added successfully!');
       setIsSuccess(true);
       setFormData({
@@ -46,6 +55,8 @@ const Customer = () => {
       console.error('Error adding customer:', error);
       setMessage('Failed to add customer. Please try again.');
       setIsSuccess(false);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,17 +75,15 @@ const Customer = () => {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    // padding: '1rem',
   };
 
   const cardStyle = {
     backgroundColor: 'rgba(0, 11, 15, 1)',
-    // paddingLeft: '2rem',
     borderRadius: '1rem',
     boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
     width: '700px',
-    height: '200px,'
-    // maxWidth: '32rem',
+    padding: '2rem',
+    margin: '1rem'
   };
 
   const headingStyle = {
@@ -94,7 +103,6 @@ const Customer = () => {
 
   const inputContainerStyle = {
     // marginBottom: '0.25rem',
-    // marginTop: '3%',
   };
 
   const labelStyle = {
@@ -137,8 +145,9 @@ const Customer = () => {
     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
     transition: 'all 0.15s ease-in-out',
     transform: 'scale(1)',
-    cursor: 'pointer',
+    cursor: loading ? 'not-allowed' : 'pointer',
     border: 'none',
+    opacity: loading ? 0.7 : 1,
   };
 
   const messageStyle = {
@@ -172,14 +181,19 @@ const Customer = () => {
                   onChange={handleChange}
                   required
                   style={inputStyle}
+                  disabled={loading}
                 />
               </div>
             ))}
           </div>
 
           <div style={buttonContainerStyle}>
-            <button type="submit" style={buttonStyle}>
-              Add Customer
+            <button 
+              type="submit" 
+              style={buttonStyle}
+              disabled={loading}
+            >
+              {loading ? 'Adding Customer...' : 'Add Customer'}
             </button>
           </div>
         </form>
